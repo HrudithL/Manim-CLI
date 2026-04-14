@@ -35,6 +35,8 @@ When `--json` is active, always parse the JSON `ok` field rather than relying on
 
 ## CI script pattern
 
+### Bash
+
 ```bash
 #!/bin/bash
 set -e
@@ -61,6 +63,26 @@ done
 exit $FAILED
 ```
 
+### PowerShell
+
+```powershell
+# Validate all scene files under strict policy
+$listJson = manim-cli --json scene list --repo-path ./scenes | ConvertFrom-Json
+$files = $listJson.scenes | ForEach-Object { $_.file_path }
+
+$failed = $false
+foreach ($f in $files) {
+    $resultJson = manim-cli --json --rules-config rules.json validate scene-style --scene-file $f | ConvertFrom-Json
+    if (-not $resultJson.ok) {
+        Write-Host "FAIL: $f"
+        Write-Host ($resultJson | ConvertTo-Json -Depth 10)
+        $failed = $true
+    }
+}
+
+if ($failed) { exit 1 } else { exit 0 }
+```
+
 ## What the gate checks
 
 Only two rules are enforced by the CLI:
@@ -71,6 +93,8 @@ Only two rules are enforced by the CLI:
 | `style.animation_run_time` | `run_time=` kwarg exceeds 3x `style.animation_run_time` |
 
 Everything else (overlap, label density, stroke width, font size) must be enforced at the authoring level or via a separate linter.
+
+> **Note:** Overlap risk, font size, and stroke width checks are **not** covered by this CLI gate. See `scene-analysis.md` for the pre-validation checklist that covers those authoring-level concerns.
 
 ## Pre-commit hook integration
 
@@ -86,3 +110,12 @@ Add to `.pre-commit-config.yaml`:
       files: 'scenes/.*\.py$'
       types: [python]
 ```
+
+## See Also
+
+| Skill | Purpose |
+|---|---|
+| `scene-analysis.md` | Authoring-level checks (overlap, font size, stroke width) not covered by this gate |
+| `pipeline.md` | Full render pipeline that includes the CI gate as subset |
+| `policy-fix.md` | Fix loop when the gate returns `POLICY_VIOLATION` |
+| `rules-config.md` | Configure `approved_palette` and `animation_run_time` thresholds |
