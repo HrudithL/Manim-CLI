@@ -19,13 +19,15 @@ Never fabricate paths — always derive from this output.
 manim-cli --json --rules-config rules.json analyze scene-file --scene-file <file_path>
 ```
 
+See `scene-analysis.md` for a full description of every `policy_facts` field and what each value means.
+
 **Stop conditions — all must pass before proceeding:**
 
-| Field | Required value | If violated |
+| Field | Required value | Action if violated |
 |---|---|---|
-| `policy_facts.overlap_risk_score` | `0` | Add positioning calls (`move_to`, `next_to`, `shift`, `to_edge`, `to_corner`) then re-run step 2 |
-| `policy_facts.hex_color_literals` | `[]` (empty) | Replace hex strings with Manim palette constants then re-run step 2 |
-| `policy_facts.run_time_overrides` | All values ≤ 3x `style.animation_run_time` | Reduce `run_time=` kwargs then re-run step 2 |
+| `policy_facts.overlap_risk_score` | `0` | Add `move_to`/`next_to`/`shift`/`to_edge`/`to_corner` calls, then re-run step 2 |
+| `policy_facts.hex_color_literals` | `[]` (empty) | Replace every hex literal with a named Manim constant from the approved palette, then re-run step 2 |
+| `policy_facts.run_time_overrides` | All values ≤ 3x `style.animation_run_time` | Reduce `run_time=` kwargs to at most 3x threshold, then re-run step 2 |
 
 ## Step 3 — Validate style
 
@@ -35,7 +37,7 @@ manim-cli --json --rules-config rules.json validate scene-style --scene-file <fi
 
 **Check:** `ok: true` with `error_count: 0` and `warning_count: 0` (strict mode).
 
-If `ok: false`: read `diagnostics[].fix_hint`, apply each fix, then restart from step 2.
+If `ok: false`: read `diagnostics[].fix_hint`, apply each fix, then re-run `analyze scene-file` (step 2), confirm all `policy_facts` stop conditions pass, then re-run `validate scene-style` (step 3).
 See `policy-fix.md` for the full fix loop.
 
 **Fields:** `diagnostics[]` (each: `rule_id`, `severity`, `message`, `location.lineno`, `fix_hint`).
@@ -62,6 +64,8 @@ manim-cli --json --rules-config rules.json render run \
 
 **Check:** `ok: true`, `returncode: 0`.
 
+If `error_code: MANIM_NOT_FOUND`: **Halt** — inform the user that Manim CE must be installed and on PATH before proceeding.
+
 If `error_code: RENDER_FAILED`: read `stderr` for Manim/FFmpeg/LaTeX trace, fix, restart from step 2.
 
 **Fields:** `render_command`, `returncode`, `stdout`, `stderr`, `output_root`.
@@ -76,3 +80,15 @@ If `error_code: RENDER_FAILED`: read `stderr` for Manim/FFmpeg/LaTeX trace, fix,
 | `MANIM_NOT_FOUND` | Halt — inform user Manim CE must be installed |
 | `VALIDATION_ERROR` | Check `--scene-file` / `--scene-name` args |
 | `RULES_LOAD_ERROR` | Validate `rules.json` against schema (see `rules-config.md`) |
+| `NON_INTERACTIVE_REPL_BLOCKED` | A subcommand was omitted — always provide a full subcommand in `--json` mode |
+| `UNKNOWN_ERROR` | Unexpected runtime exception — report full JSON output to user |
+
+## See Also
+
+| Skill | Purpose |
+|---|---|
+| `scene-analysis.md` | Full `policy_facts` field reference for step 2 |
+| `policy-fix.md` | Detailed fix loop for `POLICY_VIOLATION` |
+| `rules-config.md` | `rules.json` schema and policy mode definitions |
+| `ci-gate.md` | Validation-only pipeline for CI / pre-commit |
+| `project-init.md` | Scaffold scenes before running the pipeline |
