@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manim-cli"
+version = "0.1.0"
+description = "Standalone developer CLI harness for Manim Community Edition (see README for verified Manim CE version)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Manim CLI Contributors" }]
+dependencies = [
+  "click>=8.1.7",
+]
+
+[project.scripts]
+manim-cli = "manim_cli.manim.cli:main"
+
+[tool.setuptools]
+include-package-data = true
