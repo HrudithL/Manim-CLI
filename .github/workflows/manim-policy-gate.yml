@@ -1,0 +1,81 @@
+name: Manim Policy Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate-scenes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run style and layout gates
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          list_cmd = [
+              "manim-cli",
+              "--json",
+              "scene",
+              "list",
+              "--repo-path",
+              "./scenes",
+          ]
+          list_proc = subprocess.run(list_cmd, text=True, capture_output=True, check=False)
+          if list_proc.returncode != 0:
+              print(list_proc.stdout)
+              print(list_proc.stderr, file=sys.stderr)
+              sys.exit(list_proc.returncode)
+          payload = json.loads(list_proc.stdout)
+          files = [s["file_path"] for s in payload.get("scenes", [])]
+          if not files:
+              print("No scenes discovered under ./scenes; failing policy gate.")
+              sys.exit(1)
+
+          failed = False
+          for scene_file in files:
+              for gate in ("scene-style", "scene-layout"):
+                  cmd = [
+                      "manim-cli",
+                      "--json",
+                      "--rules-config",
+                      "rules.json",
+                      "validate",
+                      gate,
+                      "--scene-file",
+                      scene_file,
+                  ]
+                  proc = subprocess.run(cmd, text=True, capture_output=True, check=False)
+                  if proc.returncode != 0:
+                      failed = True
+                  try:
+                      result = json.loads(proc.stdout)
+                  except json.JSONDecodeError:
+                      failed = True
+                      print(f"Invalid JSON from {gate} for {scene_file}")
+                      print(proc.stdout)
+                      print(proc.stderr, file=sys.stderr)
+                      continue
+                  if not result.get("ok", False):
+                      failed = True
+                      print(json.dumps(result, indent=2))
+          sys.exit(1 if failed else 0)
+          PY
