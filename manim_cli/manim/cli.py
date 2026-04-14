@@ -8,6 +8,7 @@ import click
 
 from manim_cli.manim._meta import MANIM_CE_VERIFIED_VERSION
 from manim_cli.manim.core.analyze import analyze_scene_file
+from manim_cli.manim.core.install import install_skills
 from manim_cli.manim.core.project import init_project
 from manim_cli.manim.core.render import run_render
 from manim_cli.manim.core.rules import GlobalRules, RulesValidationError, default_rules, load_rules
@@ -200,6 +201,39 @@ def project_init(ctx: click.Context, target_dir: str, scene_name: str) -> None:
         emit(payload, as_json=json_output)
     except Exception as exc:
         _handle_exception(exc, "project init", json_output)
+
+
+# ---------------------------------------------------------------------------
+# install commands
+# ---------------------------------------------------------------------------
+
+@main.command("install")
+@click.option("--skills", is_flag=True, required=True, help="Install agent skill files into the project.")
+@click.option(
+    "--agent",
+    default="claude",
+    type=click.Choice(["claude", "copilot", "generic"], case_sensitive=False),
+    show_default=True,
+    help="Target agent type.",
+)
+@click.option("--target", default=None, type=click.Path(path_type=str), help="Override install directory.")
+@click.pass_context
+def install_cmd(ctx: click.Context, skills: bool, agent: str, target: str | None) -> None:
+    json_output = _json_mode(ctx)
+    try:
+        result = install_skills(agent=agent, target_override=target)
+        payload = build_envelope(
+            ok=result["ok"],
+            command="install",
+            payload={k: v for k, v in result.items() if k not in ("ok",)},
+        )
+        if not result["ok"] and "error_code" in result:
+            payload["error_code"] = result["error_code"]
+        if "error" in result:
+            payload["error"] = result["error"]
+        emit(payload, as_json=json_output)
+    except Exception as exc:
+        _handle_exception(exc, "install", json_output)
 
 
 # ---------------------------------------------------------------------------

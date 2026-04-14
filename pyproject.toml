@@ -19,3 +19,6 @@ manim-cli = "manim_cli.manim.cli:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.package-data]
+"manim_cli.skills" = ["manim-cli/*.md"]
