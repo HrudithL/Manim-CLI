@@ -6,6 +6,8 @@
 
 The CLI enforces exactly two policy rules. When either fires, execution is blocked under strict policy. This skill provides the exact fix procedure.
 
+> **Invariant:** After every fix, always re-run `analyze scene-file` before re-running `validate scene-style`. Never skip the re-analyze step.
+
 ## Enforced rules
 
 | `rule_id` | Fires when | Severity |
@@ -77,8 +79,12 @@ Once validation passes, proceed to dry-run (pipeline step 4). See `pipeline.md`.
 
 ## Policy modes reference
 
-| Mode | Blocking behavior |
+For policy mode definitions (`strict`, `warn`, `fix-ready`) and their blocking behavior, see `rules-config.md`.
+
+## See Also
+
+| Skill | Purpose |
 |---|---|
-| `strict` | `ok: false` if `error_count > 0` OR `warning_count > 0` |
-| `warn` | `ok: false` only if `error_count > 0` |
-| `fix-ready` | Same as `warn`; diagnostics include `fix_hint` fields |
+| `pipeline.md` | Full 5-step render pipeline; policy-fix feeds back into step 2 |
+| `scene-analysis.md` | `policy_facts` fields to confirm after each fix |
+| `rules-config.md` | Policy mode definitions and `approved_palette` configuration |
