@@ -7,7 +7,7 @@
 ```json
 {
   "schema_version": "1",
-  "policy": "strict",
+  "policy": "strict",                    // recommended value; CLI default is "warn"
   "layout": {
     "min_spacing": 0.9,
     "frame_margin": 0.7,
@@ -109,3 +109,12 @@ Values in `styles.py` must match the corresponding `rules.json` fields:
 | `RULES_LOAD_ERROR` | File missing, invalid JSON, or `schema_version != "1"` | Validate JSON syntax; ensure `schema_version` is `"1"` |
 | No color diagnostics emitted | `approved_palette` is empty `[]` | Add color names to the palette array |
 | `run_time` diagnostics even for small values | `animation_run_time` is very low in config | Increase `style.animation_run_time` or reduce scene `run_time=` kwargs |
+
+## See Also
+
+| Skill | Purpose |
+|---|---|
+| `project-init.md` | `styles.py` creation and the field-to-constant sync table |
+| `pipeline.md` | How `--rules-config` is consumed at each pipeline step |
+| `policy-fix.md` | Fix procedure when policy diagnostics fire |
+| `scene-analysis.md` | How `animation_run_time` and palette settings affect analysis |
