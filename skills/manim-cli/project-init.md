@@ -51,7 +51,7 @@ SECONDARY = GOLD
 ACCENT    = GREEN
 ```
 
-Values must match `rules.json` style section.
+Values must match `rules.json` style section. See `rules-config.md` → "Keeping styles.py in sync" for the authoritative field-to-constant mapping.
 
 ### 4. Scaffold a scene via CLI
 
@@ -59,6 +59,8 @@ Values must match `rules.json` style section.
 manim-cli --json --rules-config rules.json project init \
   --target-dir ./tmp_scaffold --scene-name GraphScene
 ```
+
+> **Warning:** The CLI always writes `<target-dir>/scene.py` — the output filename is fixed and cannot be customized. Do not use `./scenes` as `--target-dir`; if `scenes/scene.py` already exists, the CLI returns `VALIDATION_ERROR`.
 
 **Check:** `ok: true`. Output contains `path` (absolute path to `scene.py`).
 
@@ -82,11 +84,35 @@ from styles import STROKE_WIDTH, FONT_SIZE, ANIMATION_RUN_TIME, FILL_OPACITY
 manim-cli --json scene list --repo-path ./scenes
 ```
 
+> **Note:** `scene list` is the one command that does not require `--rules-config`. Omitting it here is intentional and correct — see `README.md` global flags for the general rule.
+
 **Check:** `ok: true`, `scenes[]` contains `GraphScene` with correct `file_path`.
 
 ## Adding a scene to an existing project
 
-Repeat steps 4–6. Each new scene goes in its own `scenes/<topic>_scene.py` file.
+Each new scene goes in its own `scenes/<topic>_scene.py` file. Follow these commands:
+
+```bash
+# 1. Scaffold into a temp dir (never scaffold directly into scenes/)
+manim-cli --json --rules-config rules.json project init \
+  --target-dir ./tmp_scaffold --scene-name MyNewScene
+
+# 2. Move into the scenes package
+mv tmp_scaffold/scene.py scenes/my_new_scene.py
+rmdir tmp_scaffold
+```
+
+Edit `scenes/my_new_scene.py`: replace inline constant definitions with the shared import:
+```python
+from styles import STROKE_WIDTH, FONT_SIZE, ANIMATION_RUN_TIME, FILL_OPACITY
+```
+
+```bash
+# 3. Verify the scene is discoverable
+manim-cli --json scene list --repo-path ./scenes
+```
+
+**Check:** `ok: true`, `scenes[]` contains `MyNewScene` with correct `file_path`.
 
 ## Naming conventions
 
@@ -102,3 +128,11 @@ Repeat steps 4–6. Each new scene goes in its own `scenes/<topic>_scene.py` fil
 - Returns `error_code: VALIDATION_ERROR` if `scene.py` already exists in `--target-dir`.
 - Never place more than one Scene subclass per file.
 - Never define magic style values inline in scene files — import from `styles.py`.
+
+## See Also
+
+| Skill | Purpose |
+|---|---|
+| `rules-config.md` | `rules.json` schema and `styles.py` sync table |
+| `pipeline.md` | Mandatory render pipeline to run after scaffolding |
+| `scene-analysis.md` | Pre-validation checklist for newly scaffolded scenes |
