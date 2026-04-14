@@ -94,7 +94,24 @@ Only two rules are enforced by the CLI:
 
 Everything else (overlap, label density, stroke width, font size) must be enforced at the authoring level or via a separate linter.
 
-> **Note:** Overlap risk, font size, and stroke width checks are **not** covered by this CLI gate. See `scene-analysis.md` for the pre-validation checklist that covers those authoring-level concerns.
+> **Update:** Layout checks are now available via `validate scene-layout` and must be part of CI enforcement for zero-overlap workflows.
+
+## Layout gate (required for zero-overlap policy)
+
+```bash
+manim-cli --json --rules-config rules.json validate scene-layout --scene-file <file_path>
+```
+
+CI must fail on any `ok: false` result from this command.
+
+### Layout rule IDs
+
+| `rule_id` | Condition |
+|---|---|
+| `layout.unpositioned_add` | Object added without explicit placement |
+| `layout.label_overlap_risk` | Multiple text/label objects likely overlap |
+| `layout.graph_label_not_anchored` | Graph label not anchored to graph/axes |
+| `layout.axis_frame_margin` | Axis edge buffer below configured frame margin |
 
 ## Pre-commit hook integration
 

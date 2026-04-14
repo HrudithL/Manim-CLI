@@ -81,7 +81,7 @@ Formula: `max(0, len(add_calls) - len(positioning_calls))`
 | `0` | At least as many positioning calls as add calls | OK to proceed |
 | `> 0` | Some added objects lack positioning | Add explicit position calls, then re-run analysis |
 
-This is a **heuristic**, not a layout check. Score `0` does not guarantee zero overlaps, but score `> 0` reliably indicates missing positioning.
+This is a **heuristic**, not a full layout guarantee. Use `validate scene-layout` as the hard gate before render/CI.
 
 ## Pre-validation checklist
 
@@ -90,6 +90,7 @@ Before calling `validate scene-style`, confirm all of:
 - [ ] `overlap_risk_score == 0` — **[CLI-analyzed]** heuristic; score `> 0` blocks a clean validate pass
 - [ ] `hex_color_literals` is empty — **[CLI-analyzed]** literals cannot be palette-checked; always replace
 - [ ] All `run_time_overrides` values ≤ 3x threshold — **[CLI-enforced]** triggers `style.animation_run_time` diagnostic
+- [ ] `validate scene-layout` returns `ok: true` — **[CLI-enforced]** hard layout gate for overlap/clipping risk
 - [ ] Max 6 text/label objects visible simultaneously — **[authoring guidance — not CLI-enforced]** manual review required
 - [ ] All `Text`/`MathTex`/`Tex` objects have explicit positioning in `construct()` — **[authoring guidance — not CLI-enforced]** `overlap_risk_score` is a heuristic proxy, not a guarantee
 
@@ -98,6 +99,7 @@ Before calling `validate scene-style`, confirm all of:
 | Skill | Purpose |
 |---|---|
 | `pipeline.md` | Step 2 stop conditions that consume `policy_facts` |
+| `validator.md` | Hard layout gate before dry-run/render |
 | `policy-fix.md` | Fix loop for violations surfaced after analyze + validate |
 | `rules-config.md` | `animation_run_time` and palette thresholds that drive analysis |
 | `ci-gate.md` | Which checks are CLI-enforced vs authoring-level |

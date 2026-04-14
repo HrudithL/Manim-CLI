@@ -12,6 +12,7 @@
 | `scene-analysis.md` | When interpreting `analyze scene-file` output fields |
 | `ci-gate.md` | When running validation-only checks in CI or pre-commit |
 | `rules-config.md` | When creating or editing `rules.json` |
+| `validator.md` | When enforcing no-overlap / no-clipping layout guarantees |
 
 ## Quick reference — global flags
 
@@ -38,7 +39,7 @@ Project layout:
 
 Mandatory pipeline (strict order, all steps required):
   1. scene list  →  2. analyze scene-file  →  3. validate scene-style
-  4. render run --dry-run  →  5. render run
+  4. validate scene-layout  →  5. render run --dry-run  →  6. render run
 
 Key JSON fields: ok, error_code, diagnostics[], render_command
 ```
@@ -74,9 +75,10 @@ Every `--json` response contains these top-level fields:
 
 | Skill | Purpose |
 |---|---|
-| `pipeline.md` | Mandatory 5-step render pipeline with error-code retry map |
+| `pipeline.md` | Mandatory 6-step render pipeline with error-code retry map |
 | `project-init.md` | Scaffold a new project or add a scene module |
 | `policy-fix.md` | Fix loop after `POLICY_VIOLATION` |
 | `scene-analysis.md` | Full reference for `analyze scene-file` output fields |
 | `ci-gate.md` | Batch validation scripts for CI / pre-commit |
 | `rules-config.md` | `rules.json` schema, defaults, and `styles.py` sync table |
+| `validator.md` | Layout validation gate and `layout.*` diagnostics |

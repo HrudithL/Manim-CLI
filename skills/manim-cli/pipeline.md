@@ -1,6 +1,6 @@
 # Skill: Mandatory Render Pipeline
 
-> **Trigger:** Before rendering any Manim scene. Execute all 5 steps in order; never skip a step.
+> **Trigger:** Before rendering any Manim scene. Execute all 6 steps in order; never skip a step.
 
 ## Step 1 — Discover scenes
 
@@ -42,7 +42,20 @@ See `policy-fix.md` for the full fix loop.
 
 **Fields:** `diagnostics[]` (each: `rule_id`, `severity`, `message`, `location.lineno`, `fix_hint`).
 
-## Step 4 — Dry-run
+## Step 4 — Validate layout
+
+```bash
+manim-cli --json --rules-config rules.json validate scene-layout --scene-file <file_path>
+```
+
+**Check:** `ok: true` with `error_count: 0` and `warning_count: 0` (strict mode).
+
+If `ok: false`: read `diagnostics[].fix_hint`, apply each fix, then re-run `analyze scene-file` (step 2), `validate scene-style` (step 3), then this step.
+See `validator.md` for rule IDs and fix guidance.
+
+**Fields:** `diagnostics[]` (each: `rule_id`, `severity`, `message`, `location.lineno`, `fix_hint`).
+
+## Step 5 — Dry-run
 
 ```bash
 manim-cli --json --rules-config rules.json render run \
@@ -55,7 +68,7 @@ If `ok: false`: parse `error_code`, fix, restart from step 2.
 
 **Fields:** `dry_run: true`, `render_command` (subprocess argv), `policy`, `diagnostics[]`.
 
-## Step 5 — Render
+## Step 6 — Render
 
 ```bash
 manim-cli --json --rules-config rules.json render run \
@@ -88,6 +101,7 @@ If `error_code: RENDER_FAILED`: read `stderr` for Manim/FFmpeg/LaTeX trace, fix,
 | Skill | Purpose |
 |---|---|
 | `scene-analysis.md` | Full `policy_facts` field reference for step 2 |
+| `validator.md` | Mandatory layout gate and `layout.*` diagnostics |
 | `policy-fix.md` | Detailed fix loop for `POLICY_VIOLATION` |
 | `rules-config.md` | `rules.json` schema and policy mode definitions |
 | `ci-gate.md` | Validation-only pipeline for CI / pre-commit |

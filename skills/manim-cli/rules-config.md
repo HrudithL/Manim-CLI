@@ -11,7 +11,10 @@
   "layout": {
     "min_spacing": 0.9,
     "frame_margin": 0.7,
-    "overlap_policy": "strict"
+    "overlap_policy": "strict",
+    "max_bbox_intersection_ratio": 0.0,
+    "axis_label_padding": 0.2,
+    "sample_frames_per_animation": 8
   },
   "color": {
     "approved_palette": ["BLUE", "GOLD", "GREEN", "WHITE", "GREY"],
@@ -36,9 +39,12 @@ Fields marked **CLI-enforced** trigger diagnostics in `validate scene-style` and
 | `policy` | `"warn"` | Yes — controls blocking behavior |
 | `color.approved_palette` | `[]` | Yes — when non-empty, triggers `color.out_of_palette` |
 | `style.animation_run_time` | `1.0` | Yes — `run_time=` kwargs > 3x this value trigger `style.animation_run_time` |
-| `layout.min_spacing` | `0.5` | No — stored, passed to template |
-| `layout.frame_margin` | `0.5` | No — stored, passed to template |
-| `layout.overlap_policy` | `"warn"` | No — stored only |
+| `layout.min_spacing` | `0.5` | Yes — consumed by layout validator policy |
+| `layout.frame_margin` | `0.5` | Yes — `layout.axis_frame_margin` threshold |
+| `layout.overlap_policy` | `"warn"` | Yes — drives layout diagnostic severity intent |
+| `layout.max_bbox_intersection_ratio` | `0.0` | Yes — reserved threshold for future frame-sampled collision checks |
+| `layout.axis_label_padding` | `0.2` | Yes — minimum label padding target for graph annotations |
+| `layout.sample_frames_per_animation` | `8` | Yes — reserved frame sampling count for future animated overlap checks |
 | `color.semantic_mappings` | `{}` | No — stored only |
 | `color.contrast_threshold` | `4.5` | No — stored only |
 | `style.stroke_width` | `2.0` | No — embedded in `project init` template |
