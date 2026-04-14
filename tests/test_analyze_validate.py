@@ -4,7 +4,7 @@ import pytest
 
 from manim_cli.manim.core.analyze import analyze_scene_file
 from manim_cli.manim.core.rules import ColorRules, GlobalRules
-from manim_cli.manim.core.validate import validate_repo, validate_scene_style
+from manim_cli.manim.core.validate import validate_repo, validate_scene_layout, validate_scene_style
 
 
 # ---------------------------------------------------------------------------
@@ -165,3 +165,27 @@ def test_validate_scene_style_missing_file() -> None:
     result = validate_scene_style("/nonexistent/scene.py")
     assert result["ok"] is False
     assert result["error_code"] == "FILE_NOT_FOUND"
+
+
+def test_validate_scene_layout_flags_unpositioned_adds(tmp_path: Path) -> None:
+    scene_file = tmp_path / "layout_bad.py"
+    scene_file.write_text(
+        "from manim import *\nclass LayoutBad(Scene):\n    def construct(self):\n        t = Text('Hello')\n        self.add(t)\n",
+        encoding="utf-8",
+    )
+    rules = GlobalRules(policy="strict")
+    result = validate_scene_layout(str(scene_file), rules=rules)
+    assert result["ok"] is False
+    diag_ids = {d["rule_id"] for d in result["diagnostics"]}
+    assert "layout.unpositioned_add" in diag_ids
+
+
+def test_validate_scene_layout_passes_with_explicit_positioning(tmp_path: Path) -> None:
+    scene_file = tmp_path / "layout_ok.py"
+    scene_file.write_text(
+        "from manim import *\nclass LayoutOk(Scene):\n    def construct(self):\n        t = Text('Hello')\n        t.to_edge(UP, buff=1.0)\n        self.add(t)\n",
+        encoding="utf-8",
+    )
+    rules = GlobalRules(policy="strict")
+    result = validate_scene_layout(str(scene_file), rules=rules)
+    assert result["ok"] is True

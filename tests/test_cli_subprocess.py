@@ -185,6 +185,34 @@ def test_validate_scene_style_strict_warns(tmp_path: Path) -> None:
     assert len(data["diagnostics"]) > 0
 
 
+def test_validate_scene_layout_command_strict_blocks(tmp_path: Path) -> None:
+    rules_file = tmp_path / "rules.json"
+    rules_file.write_text(
+        '{"schema_version": "1", "policy": "strict"}',
+        encoding="utf-8",
+    )
+    scene_file = tmp_path / "layout_bad.py"
+    scene_file.write_text(
+        "from manim import *\nclass S(Scene):\n    def construct(self):\n        t = Text('x')\n        self.add(t)\n",
+        encoding="utf-8",
+    )
+    proc = _run_cli(
+        "--json",
+        "--rules-config",
+        str(rules_file),
+        "validate",
+        "scene-layout",
+        "--scene-file",
+        str(scene_file),
+    )
+    data = json.loads(proc.stdout)
+    assert data["ok"] is False
+    assert data["command"] == "validate scene-layout"
+    assert data["error_code"] == "POLICY_VIOLATION"
+    diag_ids = {d["rule_id"] for d in data["diagnostics"]}
+    assert "layout.unpositioned_add" in diag_ids
+
+
 # ---------------------------------------------------------------------------
 # analyze scene-file includes policy_facts
 # ---------------------------------------------------------------------------

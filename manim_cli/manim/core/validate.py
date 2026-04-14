@@ -92,3 +92,43 @@ def validate_scene_style(
         "warning_count": len(warnings),
         "effective_rules": rules.summary(),
     }
+
+
+def validate_scene_layout(
+    scene_file: str,
+    rules: GlobalRules | None = None,
+) -> dict[str, Any]:
+    """Run layout-only checks on a single scene file and return diagnostics."""
+    from .render import _run_policy_checks  # local import to avoid cycles
+
+    if rules is None:
+        rules = default_rules()
+
+    path = Path(scene_file)
+    if not path.exists():
+        return {
+            "ok": False,
+            "error": f"scene file does not exist: {scene_file}",
+            "error_code": "FILE_NOT_FOUND",
+            "diagnostics": [],
+        }
+
+    diagnostics = [d for d in _run_policy_checks(scene_file, rules) if d["rule_id"].startswith("layout.")]
+    errors = [d for d in diagnostics if d["severity"] == "error"]
+    warnings = [d for d in diagnostics if d["severity"] == "warning"]
+
+    policy = rules.policy
+    if policy == "strict":
+        violations = len(errors) + len(warnings)
+    else:
+        violations = len(errors)
+
+    return {
+        "ok": violations == 0,
+        "scene_file": scene_file,
+        "policy": policy,
+        "diagnostics": diagnostics,
+        "error_count": len(errors),
+        "warning_count": len(warnings),
+        "effective_rules": rules.summary(),
+    }

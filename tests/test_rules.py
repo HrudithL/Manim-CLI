@@ -77,6 +77,18 @@ def test_load_rules_overrides_layout(tmp_path: Path) -> None:
     assert rules.layout.frame_margin == 0.25
 
 
+def test_load_rules_overrides_extended_layout_fields(tmp_path: Path) -> None:
+    cfg = tmp_path / "rules.json"
+    cfg.write_text(
+        '{"schema_version": "1", "layout": {"max_bbox_intersection_ratio": 0.1, "axis_label_padding": 0.3, "sample_frames_per_animation": 12}}',
+        encoding="utf-8",
+    )
+    rules = load_rules(str(cfg))
+    assert rules.layout.max_bbox_intersection_ratio == 0.1
+    assert rules.layout.axis_label_padding == 0.3
+    assert rules.layout.sample_frames_per_animation == 12
+
+
 # ---------------------------------------------------------------------------
 # load_rules: validation errors
 # ---------------------------------------------------------------------------
@@ -125,6 +137,20 @@ def test_load_rules_wrong_schema_version_raises(tmp_path: Path) -> None:
     bad = tmp_path / "bad.json"
     bad.write_text('{"schema_version": "99"}', encoding="utf-8")
     with pytest.raises(RulesValidationError, match="schema_version"):
+        load_rules(str(bad))
+
+
+def test_load_rules_negative_axis_label_padding_raises(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.json"
+    bad.write_text('{"layout": {"axis_label_padding": -0.1}}', encoding="utf-8")
+    with pytest.raises(RulesValidationError, match="axis_label_padding"):
+        load_rules(str(bad))
+
+
+def test_load_rules_invalid_sampling_count_raises(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.json"
+    bad.write_text('{"layout": {"sample_frames_per_animation": 0}}', encoding="utf-8")
+    with pytest.raises(RulesValidationError, match="sample_frames_per_animation"):
         load_rules(str(bad))
 
 

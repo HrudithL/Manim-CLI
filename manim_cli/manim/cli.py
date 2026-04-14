@@ -13,7 +13,7 @@ from manim_cli.manim.core.project import init_project
 from manim_cli.manim.core.render import run_render
 from manim_cli.manim.core.rules import GlobalRules, RulesValidationError, default_rules, load_rules
 from manim_cli.manim.core.scene_index import discover_scenes
-from manim_cli.manim.core.validate import validate_repo, validate_scene_style
+from manim_cli.manim.core.validate import validate_repo, validate_scene_layout, validate_scene_style
 from manim_cli.manim.utils.output import build_error_envelope, build_envelope, emit
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
@@ -403,6 +403,26 @@ def validate_scene_style_cmd(ctx: click.Context, scene_file: str) -> None:
         emit(payload, as_json=json_output)
     except Exception as exc:
         _handle_exception(exc, "validate scene-style", json_output)
+
+
+@validate.command("scene-layout")
+@click.option("--scene-file", required=True, type=click.Path(path_type=str))
+@click.pass_context
+def validate_scene_layout_cmd(ctx: click.Context, scene_file: str) -> None:
+    json_output = _json_mode(ctx)
+    rules = _get_rules(ctx)
+    try:
+        result = validate_scene_layout(scene_file, rules=rules)
+        payload = build_envelope(
+            ok=result["ok"],
+            command="validate scene-layout",
+            payload={k: v for k, v in result.items() if k not in ("ok",)},
+        )
+        if not result["ok"]:
+            payload["error_code"] = "POLICY_VIOLATION"
+        emit(payload, as_json=json_output)
+    except Exception as exc:
+        _handle_exception(exc, "validate scene-layout", json_output)
 
 
 if __name__ == "__main__":

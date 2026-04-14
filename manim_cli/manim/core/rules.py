@@ -27,6 +27,9 @@ class LayoutRules:
     min_spacing: float = 0.5
     frame_margin: float = 0.5
     overlap_policy: str = "warn"
+    max_bbox_intersection_ratio: float = 0.0
+    axis_label_padding: float = 0.2
+    sample_frames_per_animation: int = 8
 
 
 @dataclass
@@ -75,6 +78,13 @@ def _merge_layout(base: LayoutRules, override: dict[str, Any]) -> LayoutRules:
         min_spacing=float(override.get("min_spacing", base.min_spacing)),
         frame_margin=float(override.get("frame_margin", base.frame_margin)),
         overlap_policy=str(override.get("overlap_policy", base.overlap_policy)),
+        max_bbox_intersection_ratio=float(
+            override.get("max_bbox_intersection_ratio", base.max_bbox_intersection_ratio)
+        ),
+        axis_label_padding=float(override.get("axis_label_padding", base.axis_label_padding)),
+        sample_frames_per_animation=int(
+            override.get("sample_frames_per_animation", base.sample_frames_per_animation)
+        ),
     )
 
 
@@ -104,6 +114,12 @@ def _validate(rules: GlobalRules) -> None:
         raise RulesValidationError("layout.min_spacing must be >= 0")
     if rules.layout.frame_margin < 0:
         raise RulesValidationError("layout.frame_margin must be >= 0")
+    if rules.layout.max_bbox_intersection_ratio < 0:
+        raise RulesValidationError("layout.max_bbox_intersection_ratio must be >= 0")
+    if rules.layout.axis_label_padding < 0:
+        raise RulesValidationError("layout.axis_label_padding must be >= 0")
+    if rules.layout.sample_frames_per_animation < 1:
+        raise RulesValidationError("layout.sample_frames_per_animation must be >= 1")
     if not (0.0 <= rules.style.fill_opacity <= 1.0):
         raise RulesValidationError("style.fill_opacity must be in [0.0, 1.0]")
     if rules.style.stroke_width < 0:

@@ -119,8 +119,166 @@ def _run_policy_checks(
                     )
                 )
 
+    diagnostics.extend(_run_layout_checks(tree=tree, scene_file=scene_file, rules=rules))
+
     # Sort for determinism: (rule_id, lineno)
     diagnostics.sort(key=lambda d: (d["rule_id"], d.get("location", {}).get("lineno", 0)))
+    return diagnostics
+
+
+def _run_layout_checks(
+    tree: ast.AST,
+    scene_file: str,
+    rules: GlobalRules,
+) -> list[dict[str, Any]]:
+    """
+    Conservative AST-based layout checks.
+
+    These checks intentionally fail early when placement intent is ambiguous.
+    They provide deterministic CI enforcement for obvious overlap/clipping risks.
+    """
+    diagnostics: list[dict[str, Any]] = []
+
+    positioned_vars: set[str] = set()
+    constructed_vars: dict[str, str] = {}
+    axes_vars: set[str] = set()
+    label_vars: set[str] = set()
+    graph_like_vars: set[str] = set()
+
+    axis_ctor_names = {"Axes", "NumberPlane", "ThreeDAxes"}
+    label_ctor_names = {"Text", "Tex", "MathTex", "DecimalNumber", "Integer"}
+    graph_call_attrs = {"plot", "plot_line_graph", "get_graph", "plot_parametric_curve"}
+    position_methods = {"move_to", "shift", "next_to", "to_edge", "to_corner", "arrange"}
+
+    def _var_name(node: ast.AST) -> str | None:
+        if isinstance(node, ast.Name):
+            return node.id
+        return None
+
+    def _const_number(node: ast.AST) -> float | None:
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return float(node.value)
+        return None
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+            ctor_name = None
+            if isinstance(node.value.func, ast.Name):
+                ctor_name = node.value.func.id
+            if ctor_name is None:
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    constructed_vars[target.id] = ctor_name
+                    if ctor_name in axis_ctor_names:
+                        axes_vars.add(target.id)
+                    if ctor_name in label_ctor_names:
+                        label_vars.add(target.id)
+
+        if (
+            isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr in graph_call_attrs
+        ):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    graph_like_vars.add(target.id)
+
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            method = node.func.attr
+            owner_name = _var_name(node.func.value)
+            if owner_name and method in position_methods:
+                positioned_vars.add(owner_name)
+
+            if owner_name and method == "to_edge":
+                margin = rules.layout.frame_margin
+                buff_value = None
+                for kw in node.keywords:
+                    if kw.arg == "buff":
+                        buff_value = _const_number(kw.value)
+                        break
+                if owner_name in axes_vars and buff_value is not None and buff_value < margin:
+                    diagnostics.append(
+                        _make_diagnostic(
+                            rule_id="layout.axis_frame_margin",
+                            severity="warning",
+                            message=(
+                                f"axis '{owner_name}' uses to_edge(buff={buff_value}) below "
+                                f"required frame_margin={margin}"
+                            ),
+                            scene_file=scene_file,
+                            lineno=node.lineno,
+                            fix_hint=(
+                                f"Increase buff to >= {margin} to avoid axis clipping at frame edge"
+                            ),
+                        )
+                    )
+
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "self"
+        ):
+            for arg in node.args:
+                arg_name = _var_name(arg)
+                if not arg_name:
+                    continue
+                if arg_name not in positioned_vars:
+                    diagnostics.append(
+                        _make_diagnostic(
+                            rule_id="layout.unpositioned_add",
+                            severity="warning",
+                            message=(
+                                f"'{arg_name}' is added without explicit positioning; "
+                                "this can cause overlap with existing mobjects"
+                            ),
+                            scene_file=scene_file,
+                            lineno=node.lineno,
+                            fix_hint=(
+                                f"Call {arg_name}.next_to()/move_to()/to_edge() before self.add(...)"
+                            ),
+                        )
+                    )
+
+    # If many labels are created and few are positioned, flag density risk.
+    unpositioned_labels = [v for v in label_vars if v not in positioned_vars]
+    if len(unpositioned_labels) >= 2:
+        diagnostics.append(
+            _make_diagnostic(
+                rule_id="layout.label_overlap_risk",
+                severity="warning",
+                message=(
+                    f"{len(unpositioned_labels)} text/label objects appear unpositioned; "
+                    "graph labels may overlap"
+                ),
+                scene_file=scene_file,
+                fix_hint=(
+                    "Position each label explicitly with next_to()/move_to() and tune buff spacing"
+                ),
+            )
+        )
+
+    # When both graph and label variables exist, enforce explicit placement for labels.
+    if graph_like_vars and label_vars:
+        for label_name in sorted(label_vars):
+            if label_name not in positioned_vars:
+                diagnostics.append(
+                    _make_diagnostic(
+                        rule_id="layout.graph_label_not_anchored",
+                        severity="warning",
+                        message=(
+                            f"label '{label_name}' is not explicitly anchored relative to graph/axes"
+                        ),
+                        scene_file=scene_file,
+                        fix_hint=(
+                            f"Anchor label '{label_name}' using .next_to(<graph_or_axis>, buff=...)"
+                        ),
+                    )
+                )
+
     return diagnostics
 
 
