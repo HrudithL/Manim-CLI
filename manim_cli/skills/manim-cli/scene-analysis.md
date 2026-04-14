@@ -87,8 +87,17 @@ This is a **heuristic**, not a layout check. Score `0` does not guarantee zero o
 
 Before calling `validate scene-style`, confirm all of:
 
-- [ ] `overlap_risk_score == 0`
-- [ ] `hex_color_literals` is empty
-- [ ] All `run_time_overrides` values ≤ 3x threshold
-- [ ] Max 6 text/label objects visible simultaneously (manual review)
-- [ ] All `Text`/`MathTex`/`Tex` objects have explicit positioning in `construct()`
+- [ ] `overlap_risk_score == 0` — **[CLI-analyzed]** heuristic; score `> 0` blocks a clean validate pass
+- [ ] `hex_color_literals` is empty — **[CLI-analyzed]** literals cannot be palette-checked; always replace
+- [ ] All `run_time_overrides` values ≤ 3x threshold — **[CLI-enforced]** triggers `style.animation_run_time` diagnostic
+- [ ] Max 6 text/label objects visible simultaneously — **[authoring guidance — not CLI-enforced]** manual review required
+- [ ] All `Text`/`MathTex`/`Tex` objects have explicit positioning in `construct()` — **[authoring guidance — not CLI-enforced]** `overlap_risk_score` is a heuristic proxy, not a guarantee
+
+## See Also
+
+| Skill | Purpose |
+|---|---|
+| `pipeline.md` | Step 2 stop conditions that consume `policy_facts` |
+| `policy-fix.md` | Fix loop for violations surfaced after analyze + validate |
+| `rules-config.md` | `animation_run_time` and palette thresholds that drive analysis |
+| `ci-gate.md` | Which checks are CLI-enforced vs authoring-level |
