@@ -67,3 +67,16 @@ Every `--json` response contains these top-level fields:
 | `POLICY_VIOLATION` | Style/color gate blocked execution |
 | `RULES_LOAD_ERROR` | Invalid rules.json |
 | `USAGE_ERROR` | Missing required CLI option |
+| `NON_INTERACTIVE_REPL_BLOCKED` | No subcommand provided in `--json` / non-interactive mode |
+| `UNKNOWN_ERROR` | Unexpected runtime exception |
+
+## See Also
+
+| Skill | Purpose |
+|---|---|
+| `pipeline.md` | Mandatory 5-step render pipeline with error-code retry map |
+| `project-init.md` | Scaffold a new project or add a scene module |
+| `policy-fix.md` | Fix loop after `POLICY_VIOLATION` |
+| `scene-analysis.md` | Full reference for `analyze scene-file` output fields |
+| `ci-gate.md` | Batch validation scripts for CI / pre-commit |
+| `rules-config.md` | `rules.json` schema, defaults, and `styles.py` sync table |
