@@ -3,17 +3,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from manim_cli.manim.utils.output import ENVELOPE_SCHEMA_VERSION
+
 
 def test_render_dry_run_json_output(tmp_path: Path) -> None:
     scene_file = tmp_path / "scene.py"
     scene_file.write_text(
-        """
-from manim import *
-
-class DryRunScene(Scene):
-    def construct(self):
-        self.play(Write(Text("x")))
-""".strip(),
+        "from manim import *\nclass DryRunScene(Scene):\n    def construct(self):\n        self.play(Write(Text('x')))\n",
         encoding="utf-8",
     )
 
@@ -37,4 +33,10 @@ class DryRunScene(Scene):
     data = json.loads(proc.stdout)
     assert data["ok"] is True
     assert data["dry_run"] is True
-    assert "-ql" in data["command"]
+    assert "-ql" in data["render_command"]
+    # Envelope contract
+    assert data["schema_version"] == ENVELOPE_SCHEMA_VERSION
+    assert data["command"] == "render run"
+    assert "timestamp" in data
+    assert "diagnostics" in data
+    assert "policy" in data
