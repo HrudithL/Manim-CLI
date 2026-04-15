@@ -35,3 +35,16 @@ htmlcov/
 
 # Manim render output (local / CI artifacts)
 media/
+
+# Claude Code — machine-local files (shared settings.json is fine to commit)
+.claude/settings.local.json
+.claude/memory/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
