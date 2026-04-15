@@ -8,12 +8,14 @@ import click
 
 from manim_cli.manim._meta import MANIM_CE_VERIFIED_VERSION
 from manim_cli.manim.core.analyze import analyze_scene_file
+from manim_cli.manim.core.fix import apply_fixes
 from manim_cli.manim.core.install import install_skills
 from manim_cli.manim.core.project import init_project
 from manim_cli.manim.core.render import run_render
 from manim_cli.manim.core.rules import GlobalRules, RulesValidationError, default_rules, load_rules
 from manim_cli.manim.core.scene_index import discover_scenes
 from manim_cli.manim.core.validate import validate_repo, validate_scene_layout, validate_scene_style
+from manim_cli.manim.core.watch import watch_scene_file
 from manim_cli.manim.utils.output import build_error_envelope, build_envelope, emit
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
@@ -423,6 +425,85 @@ def validate_scene_layout_cmd(ctx: click.Context, scene_file: str) -> None:
         emit(payload, as_json=json_output)
     except Exception as exc:
         _handle_exception(exc, "validate scene-layout", json_output)
+
+
+# ---------------------------------------------------------------------------
+# watch commands
+# ---------------------------------------------------------------------------
+
+@main.group()
+def watch() -> None:
+    """Watch a scene file for changes and re-validate on every save."""
+
+
+@watch.command("scene-file")
+@click.option("--scene-file", required=True, type=click.Path(exists=True, path_type=str))
+@click.option(
+    "--poll-interval",
+    default=1.0,
+    show_default=True,
+    type=float,
+    metavar="SECONDS",
+    help="Seconds between file-modification checks.",
+)
+@click.pass_context
+def watch_scene_file_cmd(ctx: click.Context, scene_file: str, poll_interval: float) -> None:
+    json_output = _json_mode(ctx)
+    rules = _get_rules(ctx)
+
+    click.echo(
+        f"Watching {scene_file}  (poll every {poll_interval}s — Ctrl-C to stop)",
+        err=True,
+    )
+    try:
+        for event in watch_scene_file(scene_file, rules, poll_interval=poll_interval):
+            payload = build_envelope(
+                ok=event["ok"],
+                command="watch scene-file",
+                payload={k: v for k, v in event.items() if k != "ok"},
+            )
+            emit(payload, as_json=json_output)
+    except KeyboardInterrupt:
+        click.echo("Stopped.", err=True)
+    except Exception as exc:
+        _handle_exception(exc, "watch scene-file", json_output)
+
+
+# ---------------------------------------------------------------------------
+# fix commands
+# ---------------------------------------------------------------------------
+
+@main.group()
+def fix() -> None:
+    """Apply auto-fixes for policy violations."""
+
+
+@fix.command("apply")
+@click.option("--scene-file", required=True, type=click.Path(exists=True, path_type=str))
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be changed without writing the file.",
+)
+@click.pass_context
+def fix_apply(ctx: click.Context, scene_file: str, dry_run: bool) -> None:
+    json_output = _json_mode(ctx)
+    rules = _get_rules(ctx)
+    try:
+        result = apply_fixes(scene_file=scene_file, rules=rules, dry_run=dry_run)
+        payload = build_envelope(
+            ok=result["ok"],
+            command="fix apply",
+            payload={k: v for k, v in result.items() if k != "ok"},
+        )
+        if not result["ok"] and "error_code" in result:
+            payload["error_code"] = result["error_code"]
+        if "error" in result:
+            payload["error"] = result["error"]
+        emit(payload, as_json=json_output)
+    except Exception as exc:
+        _handle_exception(exc, "fix apply", json_output)
 
 
 if __name__ == "__main__":
