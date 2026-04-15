@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "policy": "warn",
+  "layout": {
+    "require_explicit_positioning": false
+  },
+  "color": {
+    "approved_palette": []
+  },
+  "style": {
+    "max_animation_run_time": 5.0,
+    "font_size": 36,
+    "stroke_width": 2
+  }
+}
