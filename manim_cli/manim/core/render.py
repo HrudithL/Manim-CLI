@@ -6,27 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .constants import MANIM_COLOR_NAMES
 from .rules import GlobalRules, default_rules
-
-# ---------------------------------------------------------------------------
-# Known Manim color constant names that are not in the approved palette
-# (evaluated by heuristic – only flagged when a non-empty palette is defined)
-# ---------------------------------------------------------------------------
-_MANIM_COLOR_NAMES = frozenset(
-    [
-        "RED", "RED_A", "RED_B", "RED_C", "RED_D", "RED_E",
-        "ORANGE", "YELLOW", "YELLOW_A", "YELLOW_B", "YELLOW_C", "YELLOW_D", "YELLOW_E",
-        "GREEN", "GREEN_A", "GREEN_B", "GREEN_C", "GREEN_D", "GREEN_E",
-        "TEAL", "TEAL_A", "TEAL_B", "TEAL_C", "TEAL_D", "TEAL_E",
-        "BLUE", "BLUE_A", "BLUE_B", "BLUE_C", "BLUE_D", "BLUE_E",
-        "PURPLE", "PURPLE_A", "PURPLE_B", "PURPLE_C", "PURPLE_D", "PURPLE_E",
-        "MAROON", "MAROON_A", "MAROON_B", "MAROON_C", "MAROON_D", "MAROON_E",
-        "GOLD", "GOLD_A", "GOLD_B", "GOLD_C", "GOLD_D", "GOLD_E",
-        "WHITE", "BLACK", "GREY", "GRAY", "GREY_A", "GREY_B", "GREY_C",
-        "GREY_BROWN", "DARK_BROWN", "DARK_BLUE",
-        "PINK", "LIGHT_PINK", "LIGHT_BROWN",
-    ]
-)
 
 
 # ---------------------------------------------------------------------------
@@ -79,7 +60,7 @@ def _run_policy_checks(
     for node in ast.walk(tree):
         # Detect use of out-of-palette Manim color names when palette defined
         if check_palette and isinstance(node, ast.Name):
-            if node.id in _MANIM_COLOR_NAMES and node.id.upper() not in approved:
+            if node.id in MANIM_COLOR_NAMES and node.id.upper() not in approved:
                 diagnostics.append(
                     _make_diagnostic(
                         rule_id="color.out_of_palette",

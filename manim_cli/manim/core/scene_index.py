@@ -4,6 +4,8 @@ import ast
 from dataclasses import dataclass
 from pathlib import Path
 
+from .constants import MANIM_SCENE_BASE_NAMES
+
 
 @dataclass(frozen=True)
 class SceneInfo:
@@ -12,14 +14,52 @@ class SceneInfo:
     lineno: int
 
 
-def _is_scene_subclass(node: ast.ClassDef) -> bool:
-    for base in node.bases:
-        if isinstance(base, ast.Name) and base.id == "Scene":
+# ---------------------------------------------------------------------------
+# Per-file inheritance helpers
+# ---------------------------------------------------------------------------
+
+def _collect_class_bases(tree: ast.AST) -> dict[str, set[str]]:
+    """Return {class_name: {immediate_base_names}} for every class in *tree*."""
+    class_bases: dict[str, set[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            bases: set[str] = set()
+            for base in node.bases:
+                if isinstance(base, ast.Name):
+                    bases.add(base.id)
+                elif isinstance(base, ast.Attribute):
+                    # e.g. manim.Scene → "Scene"
+                    bases.add(base.attr)
+            class_bases[node.name] = bases
+    return class_bases
+
+
+def _is_scene_subclass(class_name: str, class_bases: dict[str, set[str]]) -> bool:
+    """Return True if *class_name* transitively inherits from any Manim scene base.
+
+    Resolves intermediate bases defined in the same file so that patterns like::
+
+        class MyBase(MovingCameraScene): ...
+        class MyScene(MyBase): ...         # ← discovered
+
+    are correctly identified without importing the module.
+    """
+    visited: set[str] = set()
+    queue: list[str] = list(class_bases.get(class_name, set()))
+    while queue:
+        name = queue.pop()
+        if name in visited:
+            continue
+        visited.add(name)
+        if name in MANIM_SCENE_BASE_NAMES:
             return True
-        if isinstance(base, ast.Attribute) and base.attr == "Scene":
-            return True
+        queue.extend(class_bases.get(name, set()) - visited)
     return False
 
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 def discover_scenes(repo_path: str) -> list[SceneInfo]:
     root = Path(repo_path)
@@ -35,8 +75,10 @@ def discover_scenes(repo_path: str) -> list[SceneInfo]:
             tree = ast.parse(source, filename=str(py_file))
         except SyntaxError:
             continue
+
+        class_bases = _collect_class_bases(tree)
         for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef) and _is_scene_subclass(node):
+            if isinstance(node, ast.ClassDef) and _is_scene_subclass(node.name, class_bases):
                 results.append(
                     SceneInfo(
                         name=node.name,
@@ -44,4 +86,5 @@ def discover_scenes(repo_path: str) -> list[SceneInfo]:
                         lineno=node.lineno,
                     )
                 )
+
     return sorted(results, key=lambda s: (s.file_path, s.lineno, s.name))

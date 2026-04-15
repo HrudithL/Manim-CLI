@@ -4,24 +4,8 @@ import ast
 from pathlib import Path
 from typing import Any
 
+from .constants import MANIM_COLOR_NAMES
 from .rules import GlobalRules, default_rules
-
-# Manim color constants used for palette/style detection
-_MANIM_COLOR_NAMES = frozenset(
-    [
-        "RED", "RED_A", "RED_B", "RED_C", "RED_D", "RED_E",
-        "ORANGE", "YELLOW", "YELLOW_A", "YELLOW_B", "YELLOW_C", "YELLOW_D", "YELLOW_E",
-        "GREEN", "GREEN_A", "GREEN_B", "GREEN_C", "GREEN_D", "GREEN_E",
-        "TEAL", "TEAL_A", "TEAL_B", "TEAL_C", "TEAL_D", "TEAL_E",
-        "BLUE", "BLUE_A", "BLUE_B", "BLUE_C", "BLUE_D", "BLUE_E",
-        "PURPLE", "PURPLE_A", "PURPLE_B", "PURPLE_C", "PURPLE_D", "PURPLE_E",
-        "MAROON", "MAROON_A", "MAROON_B", "MAROON_C", "MAROON_D", "MAROON_E",
-        "GOLD", "GOLD_A", "GOLD_B", "GOLD_C", "GOLD_D", "GOLD_E",
-        "WHITE", "BLACK", "GREY", "GRAY", "GREY_A", "GREY_B", "GREY_C",
-        "GREY_BROWN", "DARK_BROWN", "DARK_BLUE",
-        "PINK", "LIGHT_PINK", "LIGHT_BROWN",
-    ]
-)
 
 
 def _call_name(node: ast.Call) -> str:
@@ -43,7 +27,7 @@ def _extract_policy_facts(tree: ast.AST, scene_file: str) -> dict[str, Any]:
 
     for node in ast.walk(tree):
         # Detect Manim color constant references
-        if isinstance(node, ast.Name) and node.id in _MANIM_COLOR_NAMES:
+        if isinstance(node, ast.Name) and node.id in MANIM_COLOR_NAMES:
             color_refs.append({"name": node.id, "lineno": node.lineno})
 
         # Detect hex-string color literals (#RRGGBB style)
