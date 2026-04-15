@@ -96,6 +96,7 @@ def test_invalid_rules_config_returns_error(tmp_path: Path) -> None:
     scene_file.write_text("from manim import Scene\nclass S(Scene): pass\n", encoding="utf-8")
 
     proc = _run_cli("--json", "--rules-config", str(bad_rules), "scene", "list", "--repo-path", str(tmp_path))
+    assert proc.returncode != 0
     data = json.loads(proc.stdout)
     assert data["ok"] is False
     assert data["error_code"] == "RULES_LOAD_ERROR"
@@ -162,6 +163,7 @@ def test_validate_scene_style_clean_scene(tmp_path: Path) -> None:
 
 def test_validate_scene_style_missing_file(tmp_path: Path) -> None:
     proc = _run_cli("--json", "validate", "scene-style", "--scene-file", str(tmp_path / "missing.py"))
+    assert proc.returncode != 0
     data = json.loads(proc.stdout)
     assert data["ok"] is False
     assert data["error_code"] in ("FILE_NOT_FOUND", "POLICY_VIOLATION")
@@ -179,6 +181,7 @@ def test_validate_scene_style_strict_warns(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     proc = _run_cli("--json", "--rules-config", str(rules_file), "validate", "scene-style", "--scene-file", str(scene_file))
+    assert proc.returncode != 0
     data = json.loads(proc.stdout)
     assert data["ok"] is False
     assert data["error_code"] == "POLICY_VIOLATION"
@@ -205,12 +208,38 @@ def test_validate_scene_layout_command_strict_blocks(tmp_path: Path) -> None:
         "--scene-file",
         str(scene_file),
     )
+    assert proc.returncode != 0
     data = json.loads(proc.stdout)
     assert data["ok"] is False
     assert data["command"] == "validate scene-layout"
     assert data["error_code"] == "POLICY_VIOLATION"
     diag_ids = {d["rule_id"] for d in data["diagnostics"]}
     assert "layout.unpositioned_add" in diag_ids
+
+
+# ---------------------------------------------------------------------------
+# Exit-code contract: ok=False must always exit non-zero
+# ---------------------------------------------------------------------------
+
+def test_failure_exits_nonzero_validate_repo(tmp_path: Path) -> None:
+    """validate repo on a non-Manim directory must exit non-zero."""
+    proc = _run_cli("--json", "validate", "repo", "--repo-path", str(tmp_path))
+    assert proc.returncode != 0
+    data = json.loads(proc.stdout)
+    assert data["ok"] is False
+
+
+def test_success_exits_zero_validate_repo(tmp_path: Path) -> None:
+    """validate repo on a valid layout must exit zero."""
+    manim_dir = tmp_path / "manim"
+    manim_dir.mkdir()
+    (manim_dir / "scene.py").write_text(
+        "from manim import Scene\nclass S(Scene): pass\n", encoding="utf-8"
+    )
+    proc = _run_cli("--json", "validate", "repo", "--repo-path", str(tmp_path))
+    assert proc.returncode == 0, proc.stdout
+    data = json.loads(proc.stdout)
+    assert data["ok"] is True
 
 
 # ---------------------------------------------------------------------------
