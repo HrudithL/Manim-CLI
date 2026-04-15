@@ -81,6 +81,7 @@ def _handle_exception(
             error_code="UNKNOWN_ERROR",
         )
     emit(payload, as_json=json_output)
+    sys.exit(1)
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +202,8 @@ def project_init(ctx: click.Context, target_dir: str, scene_name: str) -> None:
             payload={k: v for k, v in result.items() if k not in ("ok",)},
         )
         emit(payload, as_json=json_output)
+        if not payload.get("ok"):
+            sys.exit(1)
     except Exception as exc:
         _handle_exception(exc, "project init", json_output)
 
@@ -234,6 +237,8 @@ def install_cmd(ctx: click.Context, skills: bool, agent: str, target: str | None
         if "error" in result:
             payload["error"] = result["error"]
         emit(payload, as_json=json_output)
+        if not payload.get("ok"):
+            sys.exit(1)
     except Exception as exc:
         _handle_exception(exc, "install", json_output)
 
@@ -324,6 +329,8 @@ def render_run(
         if "error" in result:
             payload["error"] = result["error"]
         emit(payload, as_json=json_output)
+        if not payload.get("ok"):
+            sys.exit(1)
     except Exception as exc:
         _handle_exception(exc, "render run", json_output)
 
@@ -383,6 +390,8 @@ def validate_repo_cmd(ctx: click.Context, repo_path: str) -> None:
         if not result["ok"] and "error_code" in result:
             payload["error_code"] = result["error_code"]
         emit(payload, as_json=json_output)
+        if not payload.get("ok"):
+            sys.exit(1)
     except Exception as exc:
         _handle_exception(exc, "validate repo", json_output)
 
@@ -403,6 +412,8 @@ def validate_scene_style_cmd(ctx: click.Context, scene_file: str) -> None:
         if not result["ok"]:
             payload["error_code"] = "POLICY_VIOLATION"
         emit(payload, as_json=json_output)
+        if not payload.get("ok"):
+            sys.exit(1)
     except Exception as exc:
         _handle_exception(exc, "validate scene-style", json_output)
 
@@ -423,6 +434,8 @@ def validate_scene_layout_cmd(ctx: click.Context, scene_file: str) -> None:
         if not result["ok"]:
             payload["error_code"] = "POLICY_VIOLATION"
         emit(payload, as_json=json_output)
+        if not payload.get("ok"):
+            sys.exit(1)
     except Exception as exc:
         _handle_exception(exc, "validate scene-layout", json_output)
 
@@ -502,6 +515,8 @@ def fix_apply(ctx: click.Context, scene_file: str, dry_run: bool) -> None:
         if "error" in result:
             payload["error"] = result["error"]
         emit(payload, as_json=json_output)
+        if not payload.get("ok"):
+            sys.exit(1)
     except Exception as exc:
         _handle_exception(exc, "fix apply", json_output)
 
